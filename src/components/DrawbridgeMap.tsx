@@ -631,7 +631,7 @@ export default function DrawbridgeMap() {
           <color attach="background" args={["#010204"]} /> 
           <fog attach="fog" args={["#010204", 30, 90]} /> 
           
-          <TopoTerrain />
+          <RealisticTerrain sunPosition={getBrasiliaSunPosition()} />
           <MapRoutes />
           
           {locations.map((loc) => (
