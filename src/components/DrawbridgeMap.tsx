@@ -1,9 +1,6 @@
-import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Html, Line, Points, PointMaterial, PerformanceMonitor } from '@react-three/drei';
-import { EffectComposer, Bloom, SMAA, Vignette } from '@react-three/postprocessing';
-import { BlendFunction } from 'postprocessing';
+import { OrbitControls, Html, Line, PerformanceMonitor } from '@react-three/drei';
 import * as THREE from 'three';
 
 // --- Death Stranding: Full World Locations ---
@@ -228,8 +225,20 @@ const terrainVertexShader = `
   void main() {
     vUv = uv;
     vPosition = position;
-    vElevation = getElevation(position.xy);
-    vec3 newPosition = position + normal * vElevation;
+    
+    // Calculate border fade (0 near edges, 1 inside)
+    float edgeDistX = min(uv.x, 1.0 - uv.x);
+    float edgeDistY = min(uv.y, 1.0 - uv.y);
+    float edgeDist = min(edgeDistX, edgeDistY);
+    float borderMask = smoothstep(0.01, 0.05, edgeDist);
+    
+    vElevation = getElevation(position.xy) * borderMask;
+    
+    // Push the edges down to create a thick "tabletop" block base
+    float baseDepth = -4.0; 
+    float finalZ = mix(baseDepth, vElevation, borderMask);
+
+    vec3 newPosition = position + normal * finalZ;
     gl_Position = projectionMatrix * modelViewMatrix * vec4(newPosition, 1.0);
   }
 `;
@@ -238,128 +247,54 @@ const terrainFragmentShader = `
   varying vec2 vUv;
   varying vec3 vPosition;
   varying float vElevation;
-
-  uniform vec3 lightPosition;
-  uniform vec3 viewPosition;
   uniform float uTime;
 
-  ${NOISE_GLSL}
-
   void main() {
-    // Dark rocky Death Stranding palette
-    vec3 colorWater = vec3(0.01, 0.01, 0.015);      // Black Tar
-    vec3 colorCrater = vec3(0.04, 0.04, 0.045);     // Scorched ash, near-black
-    vec3 colorTundra = vec3(0.09, 0.09, 0.10);      // Dark grey rock base
-    vec3 colorRock   = vec3(0.13, 0.13, 0.15);      // Dark charcoal stone
-    vec3 colorSnow   = vec3(0.65, 0.68, 0.72);      // Dirty grey-white ice, not pure white
+    float edgeDistX = min(vUv.x, 1.0 - vUv.x);
+    float edgeDistY = min(vUv.y, 1.0 - vUv.y);
+    float edgeDist = min(edgeDistX, edgeDistY);
     
-    vec3 baseColor;
-    float roughness = 1.0;
-    float metallic = 0.0;
+    // Outer Border (Cyan line)
+    if (edgeDist < 0.005) {
+      gl_FragColor = vec4(0.2, 0.6, 1.0, 1.0);
+      return;
+    }
+
+    vec3 baseColor = vec3(0.02, 0.04, 0.08);
+
+    // Thick block sides
+    if (edgeDist < 0.05) {
+       gl_FragColor = vec4(vec3(0.01, 0.02, 0.04) + vec3(0.01) * vElevation, 0.9);
+       return;
+    }
     
-    // Stronger multi-frequency rock noise for chiseled detail
-    float noiseTexture  = cnoise(vec3(vPosition.x * 5.0,  vPosition.y * 5.0,  0.0));
-    float noiseCoarse   = cnoise(vec3(vPosition.x * 1.5,  vPosition.y * 1.5,  5.0));
-    float noiseFine     = cnoise(vec3(vPosition.x * 12.0, vPosition.y * 12.0, 0.0));
-    
+    // Topological contour steps
     if (vElevation < 0.2) {
-      // === Vivid bioluminescent Timefall Tar — multi-layer fluid waves ===
-      // Large slow swell
-      float waveA = cnoise(vec3(vPosition.xy * 1.8,  uTime * 0.5)) * 0.5 + 0.5;
-      // Mid-frequency chop
-      float waveB = cnoise(vec3(vPosition.xy * 4.5 + vec2(1.7, 0.9),  uTime * 1.1)) * 0.5 + 0.5;
-      // High-frequency foam crests
-      float waveC = cnoise(vec3(vPosition.xy * 10.0 - vec2(0.5, 1.3), uTime * 2.2)) * 0.5 + 0.5;
-      // Direction-biased ripple for sense of flow
-      float waveD = cnoise(vec3(vPosition.x * 6.0 + uTime * 1.8, vPosition.y * 2.5, uTime * 0.7)) * 0.5 + 0.5;
-      // Foam flecks — very high freq, fast
-      float foam  = cnoise(vec3(vPosition.xy * 22.0 + vec2(uTime * 3.5, -uTime * 1.2), 0.0)) * 0.5 + 0.5;
-
-      vec3 tarBase  = vec3(0.0,  0.03, 0.07);
-      vec3 tarGlow  = vec3(0.0,  0.75, 0.88);
-      vec3 tarFoam  = vec3(0.25, 1.0,  1.0);
-
-      float blend = waveA * 0.35 + waveB * 0.3 + waveC * 0.2 + waveD * 0.15;
-      baseColor = mix(tarBase, mix(tarGlow, tarFoam, waveC * waveB), blend * blend);
-      // Bright foam flecks on crests
-      baseColor = mix(baseColor, tarFoam, pow(foam, 6.0) * 0.7);
-      roughness = 0.01;
-      metallic = 1.0;
+      baseColor = vec3(0.01, 0.03, 0.06);
     } else if (vElevation < 0.5) {
-      baseColor = mix(colorWater, colorCrater, smoothstep(0.2, 0.5, vElevation));
-      roughness = 0.75;
-      metallic = 0.1;
+      baseColor = vec3(0.03, 0.08, 0.12);
     } else if (vElevation < 2.5) {
-      float mf = (vElevation - 0.5) / 2.0;
-      baseColor = mix(colorCrater, colorTundra, smoothstep(0.0, 1.0, mf));
-      // Chiseled rock grain — darker crevices
-      baseColor -= abs(noiseTexture) * 0.04;
-      baseColor -= abs(noiseFine)    * 0.02;
-      roughness = 0.95;
-    } else if (vElevation < 5.0) {
-      float mf = (vElevation - 2.5) / 2.5;
-      baseColor = mix(colorTundra, colorRock, smoothstep(0.0, 1.0, mf));
-      // Heavy layered rock erosion
-      baseColor -= abs(noiseTexture) * 0.07;
-      baseColor -= abs(noiseCoarse)  * 0.04;
-      baseColor += noiseFine         * 0.015; // Slight highlight on sharp edges
-      roughness = 0.92;
+      baseColor = vec3(0.06, 0.14, 0.20);
+    } else if (vElevation < 4.5) {
+      baseColor = vec3(0.10, 0.20, 0.26);
     } else {
-      float mf = (vElevation - 5.0) / 2.0;
-      baseColor = mix(colorRock, colorSnow, smoothstep(0.0, 1.0, mf));
-      // Dirty snow — not clean white
-      baseColor -= abs(noiseFine) * 0.08;
-      roughness = 0.6;
+      baseColor = vec3(0.14, 0.26, 0.32);
     }
 
+    // Grid tracking
+    float gridLine10 = max(step(0.96, fract(vPosition.x / 10.0)), step(0.96, fract(vPosition.y / 10.0)));
+    float gridLine2 = max(step(0.92, fract(vPosition.x / 2.0)), step(0.92, fract(vPosition.y / 2.0)));
+    float contour = step(0.85, fract(vElevation * 3.0));
 
-    // --- Fast 2-sample Normals (cross-difference, 2x cheaper than 4-sample) ---
-    float eps = 0.1;
-    float hR = getElevation(vPosition.xy + vec2(eps, 0.0));
-    float hU = getElevation(vPosition.xy + vec2(0.0, eps));
-    vec3 normal = normalize(vec3(vElevation - hR, vElevation - hU, eps));
+    float scanline = sin(vPosition.y * 3.0 - uTime * 2.5) * 0.5 + 0.5;
 
-    // Animated Tar normal perturbation — creates parallax ripple/flow effect
-    if (vElevation < 0.2) {
-      // Two layers of normal distortion with different speeds and directions
-      float r1x = cnoise(vec3(vPosition.xy * 2.5 + vec2(uTime * 0.9, 0.0), 0.0)) * 0.12;
-      float r1y = cnoise(vec3(vPosition.xy * 2.5 + vec2(0.0, uTime * 0.7), 1.0)) * 0.12;
-      float r2x = cnoise(vec3(vPosition.xy * 6.0 - vec2(uTime * 1.6, 0.3), 2.0)) * 0.06;
-      float r2y = cnoise(vec3(vPosition.xy * 6.0 + vec2(0.1, uTime * 2.0), 3.0)) * 0.06;
-      normal.x += r1x + r2x;
-      normal.y += r1y + r2y;
-      normal = normalize(normal);
-    }
+    vec3 finalColor = baseColor;
+    finalColor = mix(finalColor, vec3(0.1, 0.25, 0.4), gridLine2 * 0.15);
+    finalColor = mix(finalColor, vec3(0.15, 0.4, 0.6), gridLine10 * 0.3);
+    finalColor = mix(finalColor, vec3(0.3, 0.6, 0.9), contour * 0.5);
+    finalColor += vec3(0.02, 0.08, 0.15) * scanline * 0.4;
 
-    vec3 lightDir = normalize(lightPosition);
-    float diff = max(dot(normal, lightDir), 0.0);
-    float ao = clamp((vElevation + 1.0) / 3.0, 0.2, 1.0);
-    vec3 viewDir = normalize(viewPosition - vec3(vPosition.x, vPosition.y, vElevation));
-    vec3 reflectDir = reflect(-lightDir, normal);
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32.0 * roughness) * (1.0 - roughness);
-    float shadow = clamp(1.0 - (cnoise(vec3(vPosition.x * 2.0 + lightDir.x * 5.0, vPosition.y * 2.0 + lightDir.y * 5.0, 10.0)) * 0.5 + 0.5), 0.4, 1.0);
-
-    float sunHeight = normalize(lightPosition).y;
-    // Raised ambient floor so map stays readable even after sunset (0.08 min)
-    vec3 ambientColor = mix(vec3(0.08, 0.08, 0.12), vec3(0.22, 0.25, 0.38), smoothstep(-0.2, 0.5, sunHeight));
-    vec3 sunColor = mix(vec3(0.9, 0.4, 0.2), vec3(1.0, 1.0, 0.9), smoothstep(0.0, 0.4, sunHeight));
-
-    vec3 ambient = ambientColor * baseColor * ao; 
-    vec3 diffuse = diff * baseColor * shadow * mix(0.1, 2.2, smoothstep(-0.1, 0.3, sunHeight)) * sunColor;
-    vec3 specular = spec * sunColor * shadow * mix(0.1, 1.0, smoothstep(0.0, 0.5, sunHeight));
-    vec3 finalColor = ambient + diffuse + specular;
-
-    float depth = gl_FragCoord.z / gl_FragCoord.w;
-    float fogFactor = smoothstep(25.0, 120.0, depth);
-    vec3 fogColor = mix(vec3(0.01, 0.02, 0.03), vec3(0.4, 0.5, 0.6), smoothstep(-0.2, 0.6, sunHeight));
-    finalColor = mix(finalColor, fogColor, fogFactor);
-
-    float gridX = step(0.98, fract(vPosition.x * 0.5));
-    float gridY = step(0.98, fract(vPosition.y * 0.5));
-    float gridMask = max(gridX, gridY) * (1.0 - fogFactor);
-    finalColor = mix(finalColor, vec3(0.2, 0.3, 0.4), gridMask * mix(0.15, 0.3, smoothstep(0.0, -0.2, sunHeight)));
-
-    gl_FragColor = vec4(finalColor, 1.0);
+    gl_FragColor = vec4(finalColor, 0.95);
   }
 `;
 
@@ -396,150 +331,7 @@ function RealisticTerrain({ sunPosition }: { sunPosition: THREE.Vector3 }) {
   );
 }
 
-// --- Procedural Volumetric Clouds ---
-const cloudsVertexShader = `
-  varying vec2 vUv;
-  void main() {
-    vUv = uv;
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-  }
-`;
-
-const cloudsFragmentShader = `
-  varying vec2 vUv;
-  uniform float time;
-  uniform vec3 lightPosition;
-  
-  // Hash function for noise
-  float hash(vec2 p) {
-    p = fract(p * vec2(123.34, 456.21));
-    p += dot(p, p + 45.32);
-    return fract(p.x * p.y);
-  }
-
-  // 2D Value Noise
-  float noise(vec2 p) {
-    vec2 i = floor(p);
-    vec2 f = fract(p);
-    vec2 u = f * f * (3.0 - 2.0 * f);
-    return mix(mix(hash(i + vec2(0.0, 0.0)), hash(i + vec2(1.0, 0.0)), u.x),
-               mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y);
-  }
-
-  // Fractional Brownian Motion for clouds — 3 octaves (was 4)
-  float fbm(vec2 p) {
-    float v = 0.0;
-    float a = 0.5;
-    vec2 shift = vec2(100.0);
-    for (int i = 0; i < 3; ++i) {
-      v += a * noise(p);
-      p = p * 2.0 + shift + time * 0.05;
-      a *= 0.5;
-    }
-    return v;
-  }
-
-  void main() {
-    // Sparse clouds — raised threshold so only the densest patches show
-    float cloudDensity = fbm(vUv * 8.0);
-    cloudDensity = smoothstep(0.65, 0.85, cloudDensity); // Was 0.4→0.8, now 0.65→0.85
-
-    float sunHeight = normalize(lightPosition).y;
-    vec3 dayCloudColor    = vec3(0.9, 0.9, 0.95);
-    vec3 sunsetCloudColor = vec3(0.85, 0.5, 0.3);
-    vec3 nightCloudColor  = vec3(0.04, 0.05, 0.08);
-    vec3 cloudColor = mix(nightCloudColor, mix(sunsetCloudColor, dayCloudColor, smoothstep(0.1, 0.4, sunHeight)), smoothstep(-0.2, 0.2, sunHeight));
-
-    float shadowMask = fbm(vUv * 8.0 + normalize(lightPosition.xz) * 0.1);
-    cloudColor *= mix(0.6, 1.0, shadowMask);
-
-    // Max opacity 0.25 (was 0.5) — sparse, wispy clouds
-    gl_FragColor = vec4(cloudColor, cloudDensity * mix(0.03, 0.25, smoothstep(-0.2, 0.1, sunHeight)));
-  }
-`;
-
-function CloudsLayer({ sunPosition }: { sunPosition: THREE.Vector3 }) {
-  const materialRef = useRef<THREE.ShaderMaterial>(null);
-
-  useFrame((state) => {
-    if (materialRef.current) {
-      materialRef.current.uniforms.time.value = state.clock.elapsedTime;
-      materialRef.current.uniforms.lightPosition.value.copy(sunPosition);
-    }
-  });
-
-  return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 5.0, 0]}> {/* Position strictly above the mountains */}
-      {/* Clouds don't need many segments — 24x24 is plenty */}
-      <planeGeometry args={[200, 200, 24, 24]} />
-      <shaderMaterial
-        ref={materialRef}
-        vertexShader={cloudsVertexShader}
-        fragmentShader={cloudsFragmentShader}
-        transparent={true}
-        depthWrite={false} // Don't block things behind the transparent clouds
-        uniforms={{
-          time: { value: 0 },
-          lightPosition: { value: sunPosition },
-        }}
-      />
-    </mesh>
-  );
-}
-
-// --- Timefall Rain Particles ---
-function TimefallRain() {
-  const count = 400; // was 750 — reduced for performance
-  const positions = useMemo(() => {
-    const arr = new Float32Array(count * 3);
-    for (let i = 0; i < count; i++) {
-      arr[i*3]   = (Math.random() - 0.5) * 200; // X spread
-      arr[i*3+1] = Math.random() * 30;           // Y height
-      arr[i*3+2] = (Math.random() - 0.5) * 200; // Z spread
-    }
-    return arr;
-  }, []);
-  const posRef = useRef<Float32Array>(positions);
-  const pointsRef = useRef<THREE.Points>(null);
-
-  useFrame((_, delta) => {
-    if (!pointsRef.current) return;
-    const pos = posRef.current;
-    const speed = 8.0;
-    for (let i = 0; i < count; i++) {
-      pos[i*3+1] -= speed * delta;
-      if (pos[i*3+1] < -2) {
-        // Reset to top with new random XZ
-        pos[i*3]   = (Math.random() - 0.5) * 200;
-        pos[i*3+1] = 28 + Math.random() * 4;
-        pos[i*3+2] = (Math.random() - 0.5) * 200;
-      }
-    }
-    (pointsRef.current.geometry.attributes.position as THREE.BufferAttribute).needsUpdate = true;
-  });
-
-  return (
-    <points ref={pointsRef}>
-      <bufferGeometry>
-        <bufferAttribute
-          attach="attributes-position"
-          args={[posRef.current, 3]}
-          count={count}
-        />
-      </bufferGeometry>
-      <pointsMaterial
-        color="#7dd3fc"
-        size={0.06}
-        transparent
-        opacity={0.35}
-        sizeAttenuation
-        depthWrite={false}
-        blending={THREE.AdditiveBlending}
-      />
-    </points>
-  );
-}
-
+// --- Map Nodes & Icons — Holographic Floating Pins ---
 // --- Map Nodes & Icons — Holographic Floating Pins ---
 function MapIcon({ loc, isActive, onHover }: { loc: any, isActive: boolean, onHover: (id: string|null) => void }) {
   const isKnot    = loc.type === 'knot';
@@ -549,31 +341,20 @@ function MapIcon({ loc, isActive, onHover }: { loc: any, isActive: boolean, onHo
   const isPrepper  = loc.type === 'prepper';
   const isHostile  = loc.status === 'HOSTILE';
 
-  // Color palette
-  const color = isKnot     ? '#38bdf8'  // Sky blue — Allied Knot
-              : isFacility ? '#34d399'  // Emerald — Facility
-              : isPrepper  ? '#a78bfa'  // Violet — Prepper shelter
-              : isEP       ? '#fbbf24'  // Amber — EP concentration
-              : isVoidout  ? '#f87171'  // Soft red — Obliteration
-              : '#ef4444';              // Red — BT/Hostile
+  const color = isKnot     ? '#38bdf8' 
+              : isFacility ? '#34d399'  
+              : isPrepper  ? '#a78bfa'  
+              : isEP       ? '#fbbf24'  
+              : isVoidout  ? '#f87171'  
+              : '#ef4444';              
 
-  const pinH = isKnot ? 0.9 : isFacility ? 0.6 : isPrepper ? 0.5 : 0.4;
-
-  // Animated orb + ring
-  const orbRef  = useRef<THREE.Mesh>(null);
-  const ringRef = useRef<THREE.Mesh>(null);
-  useFrame((state) => {
-    const t = state.clock.elapsedTime;
-    if (orbRef.current) {
-      // Float up/down
-      orbRef.current.position.y = pinH + 0.08 + Math.sin(t * 2.1 + loc.position[0] * 0.7) * 0.06;
-      // Slow spin
-      orbRef.current.rotation.y = t * 0.8;
-    }
-    if (ringRef.current) {
-      ringRef.current.rotation.z = t * 1.2;
-      const pulse = 1 + Math.sin(t * 3.0 + loc.position[0]) * 0.15;
-      ringRef.current.scale.setScalar(pulse);
+  const pinH = isKnot ? 0.8 : isFacility ? 0.5 : 0.4;
+  
+  // Throttle animation
+  const markerRef = useRef<THREE.Mesh>(null);
+  useFrame(({ clock }) => {
+    if (markerRef.current && (isKnot || isFacility || isPrepper)) {
+      markerRef.current.position.y = pinH + 0.1 + Math.sin(clock.elapsedTime * 2 + loc.position[0]) * 0.05;
     }
   });
 
@@ -585,84 +366,37 @@ function MapIcon({ loc, isActive, onHover }: { loc: any, isActive: boolean, onHo
         onPointerOut={() => { onHover(null); document.body.style.cursor = 'auto'; }}
         visible={false}
       >
-        <cylinderGeometry args={[0.4, 0.4, pinH + 0.6, 8]} />
+        <cylinderGeometry args={[0.5, 0.5, pinH + 0.8, 6]} />
         <meshBasicMaterial />
       </mesh>
 
-      {/* Vertical pillar — thin glowing stem */}
+      {/* Ground marker */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.05, 0]}>
+        <circleGeometry args={[isKnot ? 0.4 : 0.25, 16]} />
+        <meshBasicMaterial color={color} transparent opacity={0.4} side={THREE.DoubleSide} />
+      </mesh>
+
+      {/* Pillar */}
       {!isEP && !isVoidout && (
         <mesh position={[0, pinH / 2, 0]}>
-          <cylinderGeometry args={[0.018, 0.035, pinH, 6]} />
+          <cylinderGeometry args={[0.02, 0.02, pinH, 4]} />
           <meshBasicMaterial color={color} transparent opacity={0.7} />
         </mesh>
       )}
 
-      {/* Base glow disc on ground */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
-        <circleGeometry args={[isKnot ? 0.5 : 0.3, 32]} />
-        <meshBasicMaterial color={color} transparent opacity={0.12} side={THREE.DoubleSide} />
+      {/* Floating Head */}
+      <mesh ref={markerRef} position={[0, isEP || isVoidout ? 0.4 : pinH + 0.1, 0]}>
+        {isKnot ? <boxGeometry args={[0.2, 0.2, 0.2]} />
+         : isFacility ? <tetrahedronGeometry args={[0.15, 0]} />
+         : isEP ? <octahedronGeometry args={[0.2, 0]} />
+         : isVoidout ? <sphereGeometry args={[0.2, 8, 8]} />
+         : <sphereGeometry args={[0.1, 8, 8]} />}
+        <meshBasicMaterial color={color} />
       </mesh>
-
-      {/* Floating orb at pin tip */}
-      {!isEP && !isVoidout && (
-        <mesh ref={orbRef} position={[0, pinH, 0]}>
-          {isKnot
-            ? <boxGeometry args={[0.18, 0.18, 0.18]} />
-            : isFacility
-            ? <tetrahedronGeometry args={[0.14, 0]} />
-            : <sphereGeometry args={[0.12, 8, 8]} />}
-          <meshBasicMaterial color={color} />
-        </mesh>
-      )}
-
-      {/* Spinning ring around orb */}
-      {!isEP && !isVoidout && (
-        <mesh ref={ringRef} position={[0, pinH + 0.08, 0]} rotation={[Math.PI / 3, 0, 0]}>
-          <ringGeometry args={[0.2, 0.24, 24]} />
-          <meshBasicMaterial color={color} transparent opacity={0.55} side={THREE.DoubleSide} />
-        </mesh>
-      )}
-
-      {/* EP Zone — diamond orb with double pulsing ring (no pillar, hovers above ground) */}
-      {isEP && (
-        <>
-          <mesh ref={orbRef} position={[0, 0.5, 0]}>
-            <octahedronGeometry args={[0.22, 0]} />
-            <meshBasicMaterial color="#fbbf24" />
-          </mesh>
-          <mesh ref={ringRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.06, 0]}>
-            <ringGeometry args={[0.7, 0.85, 32]} />
-            <meshBasicMaterial color="#fbbf24" transparent opacity={0.4} side={THREE.DoubleSide} />
-          </mesh>
-          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.04, 0]}>
-            <ringGeometry args={[1.1, 1.18, 32]} />
-            <meshBasicMaterial color="#fbbf24" transparent opacity={0.18} side={THREE.DoubleSide} />
-          </mesh>
-        </>
-      )}
-
-      {/* Obliteration — rising red plume sphere, no pillar */}
-      {isVoidout && (
-        <>
-          <mesh ref={orbRef} position={[0, 0.45, 0]}>
-            <sphereGeometry args={[0.22, 10, 10]} />
-            <meshBasicMaterial color="#f87171" />
-          </mesh>
-          {/* Two concentric oscillating rings */}
-          <mesh ref={ringRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.06, 0]}>
-            <ringGeometry args={[0.8, 1.05, 32]} />
-            <meshBasicMaterial color="#ef4444" transparent opacity={0.38} side={THREE.DoubleSide} />
-          </mesh>
-          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.04, 0]}>
-            <ringGeometry args={[1.4, 1.52, 32]} />
-            <meshBasicMaterial color="#991b1b" transparent opacity={0.2} side={THREE.DoubleSide} />
-          </mesh>
-        </>
-      )}
 
       {/* HUD Info Box on hover */}
       {isActive && (
-        <Html distanceFactor={15} center zIndexRange={[100, 0]} position={[0, pinH + 0.9, 0]}>
+        <Html distanceFactor={15} center zIndexRange={[100, 0]} position={[0, pinH + 1.2, 0]}>
           <div className="pointer-events-none w-52 bg-kurobeni/95 border border-shining-knight/50 p-3 shadow-2xl backdrop-blur-md">
             <div className="flex justify-between items-center mb-1">
               <span className="font-mono text-[9px] uppercase tracking-widest text-december-sky">{loc.region}</span>
@@ -692,7 +426,6 @@ function MapIcon({ loc, isActive, onHover }: { loc: any, isActive: boolean, onHo
     </group>
   );
 }
-
 // JS elevation sampler — mirrors GLSL getElevation() so routes hug terrain correctly
 function jsSampleElevation(x: number, y: number): number {
   const hash = (a: number, b: number) => { const s = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return s - Math.floor(s); };
@@ -820,35 +553,6 @@ function MapRoutes() {
   );
 }
 
-// --- Background Chiral Particles ---
-function ChiralDebris() {
-  const count = 150; // was 400 — reduced for performance
-  const positions = useMemo(() => {
-    const arr = new Float32Array(count * 3);
-    for (let i = 0; i < count; i++) {
-      arr[i * 3] = (Math.random() - 0.5) * 50;
-      arr[i * 3 + 1] = Math.random() * 10;
-      arr[i * 3 + 2] = (Math.random() - 0.5) * 40;
-    }
-    return arr;
-  }, []);
-
-  const ref = useRef<THREE.Points>(null);
-  useFrame(() => {
-    if (ref.current) {
-      ref.current.rotation.y += 0.0005;
-      ref.current.position.y = Math.sin(Date.now() * 0.001) * 0.5;
-    }
-  });
-
-  return (
-    <Points ref={ref} positions={positions} stride={3}>
-      <PointMaterial transparent color="#f59e0b" size={0.08} sizeAttenuation={true} depthWrite={false} opacity={0.5} blending={THREE.AdditiveBlending} />
-    </Points>
-  );
-}
-
-
 // --- Time Utilities: Brasília (UTC-3) ---
 function getBrasiliaSunPosition() {
   const now = new Date();
@@ -881,30 +585,23 @@ function getBrasiliaSunPosition() {
 // --- Main UI Component ---
 export default function DrawbridgeMap() {
   const [activeNode, setActiveNode] = useState<string | null>(null);
-  const [dpr, setDpr] = useState([1, 1.5]); // Dynamic resolution baseline (capped at 1.5)
-  
-  // Update sun position dynamically based on real time
-  const [sunPosition, setSunPosition] = useState(new THREE.Vector3(-15, 25, 10)); // Default fallback
   const [brasiliaTimeString, setBrasiliaTimeString] = useState('');
 
   useEffect(() => {
     const updateTime = () => {
-      setSunPosition(getBrasiliaSunPosition());
-      
       const now = new Date();
       const utcMs = now.getTime() + (now.getTimezoneOffset() * 60000);
       const brasiliaTime = new Date(utcMs + (3600000 * -3));
       setBrasiliaTimeString(brasiliaTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }));
     };
     
-    updateTime(); // initial
-    const interval = setInterval(updateTime, 60000); // Check every minute
+    updateTime();
+    const interval = setInterval(updateTime, 60000);
     return () => clearInterval(interval);
   }, []);
 
   return (
     <section className="py-12 px-6 max-w-5xl mx-auto relative z-10">
-      
       <div className="mb-6 border-l-2 border-blue-500 pl-6 flex flex-col md:flex-row justify-between items-start md:items-end gap-4 ml-6">
         <div>
           <h2 className="font-orbitron font-bold text-3xl md:text-5xl uppercase tracking-wider text-white mb-1">
@@ -921,59 +618,35 @@ export default function DrawbridgeMap() {
         </div>
       </div>
 
-      {/* The React Three Fiber Canvas (Full HD 16:9 Aspect) */}
       <div className="relative w-full aspect-video bg-black border border-blue-900/50 overflow-hidden shadow-[0_0_30px_rgba(59,130,246,0.15)] group rounded-sm">
         <div className="absolute top-4 left-4 z-20 bg-blue-900/80 px-3 py-1 font-mono text-xs text-blue-100 uppercase tracking-widest border border-blue-500/50 backdrop-blur-md">
-          Live Satellite Topology [On The Beach Network]
+          Topological Relief [On The Beach Network]
         </div>
         
         <Canvas 
-          camera={{ position: [-12, 30, 22], fov: 60 }} 
-          dpr={dpr as [number, number]}
-          gl={{ antialias: false, powerPreference: "high-performance" }} // Manual AA handled by postprocessing
+          camera={{ position: [-18, 35, 30], fov: 50 }} 
+          gl={{ antialias: false, powerPreference: "high-performance" }}
+          dpr={[1, 1.5]}
         >
-          {/* Dynamic Downgrade/Upgrade monitor. Lowers resolution if FPS drops under heavy load */}
-          <PerformanceMonitor onDecline={() => setDpr([0.8, 1])} onIncline={() => setDpr([1, 1.5])} />
+          <color attach="background" args={["#010204"]} /> 
+          <fog attach="fog" args={["#010204", 30, 90]} /> 
           
-          <color attach="background" args={["#030508"]} /> {/* Sky color handled dynamically by fog */}
-          {/* Exponential fog handles the literal infinity cutoff perfectly */}
-          <fogExp2 attach="fog" args={["#030508", 0.015]} /> 
-          
-          <ambientLight intensity={0.5} /> 
-          
-          <RealisticTerrain sunPosition={sunPosition} />
-          <CloudsLayer sunPosition={sunPosition} />
+          <TopoTerrain />
           <MapRoutes />
-          {/* Timefall rain particles falling across the whole world */}
-          <TimefallRain />
-          {/* Debris made massively huge to cover infinity */}
-          <ChiralDebris /> 
           
           {locations.map((loc) => (
             <MapIcon key={loc.id} loc={loc} isActive={activeNode === loc.id} onHover={setActiveNode} />
           ))}
 
-          {/* Professional Post-Processing Pipeline */}
-          <EffectComposer multisampling={0}>
-            {/* Morphological AA (Crisp edges on high-res geometry without standard MSAA cost) */}
-            <SMAA />
-            {/* Cinematic Bloom (Glow). Threshold ensures only bright particles/highways glow */}
-            <Bloom mipmapBlur intensity={1.5} luminanceThreshold={0.5} luminanceSmoothing={0.9} />
-            {/* Cinematic dark edges */}
-            <Vignette eskil={false} offset={0.1} darkness={1.1} blendFunction={BlendFunction.NORMAL} />
-          </EffectComposer>
-
-          {/* Infinite exploration controls */}
           <OrbitControls 
             enablePan={true} 
             enableZoom={true} 
-            maxPolarAngle={Math.PI / 2.2} 
-            minDistance={2}
-            maxDistance={180} // Let the user zoom all the way up to "orbit"
-            target={[-12, 0, -15]}
+            maxPolarAngle={Math.PI / 2.5} 
+            minDistance={5}
+            maxDistance={120} 
+            target={[-18, 0, -5]}
           />
         </Canvas>
-
       </div>
     </section>
   );
