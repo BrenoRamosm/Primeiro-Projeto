@@ -1,0 +1,24 @@
+---
+// src/components/Header.astro
+---
+<header class="fixed top-0 w-full z-40 bg-kurobeni/80 backdrop-blur-md border-b border-shining-knight/30">
+  <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-2 h-2 rounded-full bg-blue-500 animate-pulse" aria-hidden="true"></div>
+      <a href="/" class="text-bleached-silk font-orbitron font-bold text-xl tracking-widest uppercase hover:text-odradek transition-colors">
+        BRIDGES <span class="text-shining-knight font-normal text-sm ml-2">NETWORK</span>
+      </a>
+    </div>
+    
+    <nav class="hidden md:flex gap-8 items-center font-mono text-sm tracking-widest uppercase text-december-sky">
+      <a href="/" class="hover:text-bleached-silk border-b border-transparent hover:border-odradek transition-all pb-1">Archive</a>
+      <a href="/classes" class="hover:text-bleached-silk border-b border-transparent hover:border-odradek transition-all pb-1">Classes</a>
+      <a href="/rules" class="hover:text-bleached-silk border-b border-transparent hover:border-odradek transition-all pb-1">Rules</a>
+      <a href="/abilities" class="hover:text-bleached-silk border-b border-transparent hover:border-odradek transition-all pb-1">Showcase</a>
+      <a href="/mission" class="hover:text-bleached-silk border-b border-transparent hover:border-odradek transition-all pb-1">Mission Log</a>
+      
+      <div class="h-4 w-px bg-shining-knight/40 mx-2"></div>
+      <span class="text-blue-500 text-xs opacity-80" aria-label="System status">STATUS: ONLINE</span>
+    </nav>
+  </div>
+</header>

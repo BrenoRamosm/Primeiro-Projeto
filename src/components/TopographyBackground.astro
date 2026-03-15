@@ -1,0 +1,18 @@
+---
+// TopographyBackground.astro
+---
+<div class="fixed inset-0 z-[-1] pointer-events-none opacity-20" aria-hidden="true">
+  <svg class="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <pattern id="topography" width="100" height="100" patternUnits="userSpaceOnUse">
+        <path d="M0 50 Q 25 25, 50 50 T 100 50 M0 70 Q 25 45, 50 70 T 100 70 M0 90 Q 25 65, 50 90 T 100 90" 
+              fill="none" 
+              stroke="var(--color-shining-knight)" 
+              stroke-width="0.5" 
+              class="opacity-50" />
+      </pattern>
+    </defs>
+    <rect width="100%" height="100%" fill="url(#topography)" />
+  </svg>
+  <div class="absolute inset-0 bg-scanlines"></div>
+</div>

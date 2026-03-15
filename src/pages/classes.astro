@@ -1,0 +1,43 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+import RoleCard from '../components/RoleCard';
+import { classes } from '../data/classes';
+---
+
+<Layout title="Archive: Classes | BRIDGES RPG" description="Complete registry of Bridges Network Specialist Classes.">
+  <Header />
+
+  <main class="relative pt-24 pb-20 px-6 max-w-7xl mx-auto">
+    
+    <div class="mb-12 border-l-2 border-shining-knight pl-6">
+      <h1 class="font-orbitron font-bold text-4xl md:text-6xl uppercase tracking-wider text-bleached-silk mb-2">
+        Class <span class="text-odradek">Registry</span>
+      </h1>
+      <p class="font-mono text-sm text-december-sky tracking-widest uppercase">
+        [ Archive access granted: Listing all official personnel roles ]
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+      {classes.map((c, index) => (
+        <RoleCard 
+          client:load
+          title={c.title}
+          roleType={c.roleType}
+          description={c.description}
+          stats={c.stats}
+          abilities={c.abilities}
+          delay={index * 0.15}
+        />
+      ))}
+    </div>
+
+    <div class="mt-16 text-center">
+      <a href="/" class="inline-block px-8 py-3 bg-transparent text-shining-knight font-mono uppercase tracking-widest text-sm hover:text-bleached-silk hover:border-bleached-silk transition-all border border-shining-knight/30">
+        Return to Terminal
+      </a>
+    </div>
+
+  </main>
+</Layout>

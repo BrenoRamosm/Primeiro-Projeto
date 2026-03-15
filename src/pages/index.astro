@@ -1,0 +1,67 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+import Hero from '../components/Hero';
+import LoreIntro from '../components/LoreIntro';
+import RoleCard from '../components/RoleCard';
+import DrawbridgeMap from '../components/DrawbridgeMap';
+
+// Import classes from central data store
+import { classes } from '../data/classes';
+
+// Take only the first 3 classes for the preview on the homepage
+const classPreview = classes.slice(0, 3);
+---
+
+<Layout title="Bridges RPG System" description="A role-playing experience in a shattered world.">
+  <Header />
+  
+  <main class="relative pt-16">
+    <Hero client:load />
+
+    <LoreIntro client:visible />
+
+    {/* Classes Section */}
+    <section id="classes" class="py-24 px-6 max-w-7xl mx-auto relative z-10 scroll-mt-20">
+      
+      <div class="mb-16 border-l-2 border-odradek pl-6 flex justify-between items-end flex-wrap gap-4">
+        <div>
+          <h2 class="font-orbitron font-bold text-3xl md:text-5xl uppercase tracking-wider text-bleached-silk mb-2">
+            Specialist <span class="text-shining-knight">Classes</span>
+          </h2>
+          <p class="font-mono text-sm text-december-sky tracking-widest uppercase">
+            [ Pre-approved expedition roles ]
+          </p>
+        </div>
+        
+        <a href="/classes" class="px-6 py-2 border border-odradek text-odradek font-mono text-xs uppercase tracking-widest hover:bg-odradek hover:text-kurobeni transition-all">
+          View Full Registry
+        </a>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+        {classPreview.map((c, index) => (
+          <RoleCard 
+            client:visible
+            title={c.title}
+            roleType={c.roleType}
+            description={c.description}
+            stats={c.stats}
+            abilities={c.abilities}
+            delay={index * 0.2}
+          />
+        ))}
+      </div>
+      
+    </section>
+
+    <DrawbridgeMap client:only="react" />
+
+  </main>
+  
+  <footer class="border-t border-shining-knight/20 bg-kurobeni/90 mt-20 py-8 text-center backdrop-blur-sm relative z-10">
+    <p class="font-mono text-xs text-shining-knight tracking-widest uppercase pb-4">
+      Bridges Network // Confidential Data
+    </p>
+  </footer>
+</Layout>

@@ -1,0 +1,147 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+---
+
+<Layout title="Archive: D&D Core Rules | BRIDGES RPG" description="Core mechanics and rules for the Bridges RPG system based on D&D 5e.">
+  <Header />
+
+  <main class="relative pt-24 pb-20 px-6 max-w-5xl mx-auto">
+    
+    <div class="mb-12 border-l-2 border-shining-knight pl-6">
+      <h1 class="font-orbitron font-bold text-4xl md:text-5xl uppercase tracking-wider text-bleached-silk mb-2">
+        Core <span class="text-odradek">Mechanics</span>
+      </h1>
+      <p class="font-mono text-sm text-december-sky tracking-widest uppercase">
+        [ Archive access granted: D&D 5E System Foundation ]
+      </p>
+    </div>
+
+    <div class="space-y-16 text-december-sky font-inter">
+
+      {/* Basic Mechanics */}
+      <section class="bg-dark-engine/40 border border-shining-knight/20 p-8 relative overflow-hidden backdrop-blur-sm">
+        <div class="absolute top-0 left-0 w-1 h-full bg-odradek/80"></div>
+        <h2 class="font-orbitron text-2xl font-bold text-bleached-silk tracking-wide uppercase mb-4 border-b border-shining-knight/20 pb-2">1. The Core Mechanic: The d20</h2>
+        <p class="mb-4">
+          Every action with a chance of failure in the Bridges RPG is resolved using a 20-sided die (<strong>d20</strong>). Whether you are shooting a MULE, resisting the pull of a BT Catcher, or balancing your cargo on a steep cliff, the core rule remains the same:
+        </p>
+        <ul class="list-disc pl-6 space-y-2 text-sm text-december-sky/90 bg-black/20 p-4 rounded-sm border border-shining-knight/10">
+          <li><strong>Roll the die:</strong> Roll 1d20.</li>
+          <li><strong>Add Modifiers:</strong> Add your relevant Ability Modifier and your Proficiency Bonus (if you are trained in the skill or weapon).</li>
+          <li><strong>Compare to Target:</strong> Compare the total to the Armor Class (AC) or Difficulty Class (DC) set by the Game Master (GM). If the total equals or exceeds the target, you succeed.</li>
+        </ul>
+      </section>
+
+      {/* Advantage and Disadvantage */}
+      <section class="bg-dark-engine/40 border border-shining-knight/20 p-8 relative overflow-hidden backdrop-blur-sm">
+        <div class="absolute top-0 left-0 w-1 h-full bg-odradek/80"></div>
+        <h2 class="font-orbitron text-2xl font-bold text-bleached-silk tracking-wide uppercase mb-4 border-b border-shining-knight/20 pb-2">2. Advantage & Disadvantage</h2>
+        <p class="mb-4">
+          Sometimes circumstances grant you an edge or impose a hindrance. For instance, aiming through a thermal scope through Timefall might give you an edge, while trying to shoot while carrying 120kg of cargo imposes a penalty.
+        </p>
+        <div class="grid md:grid-cols-2 gap-6 bg-black/20 p-4 rounded-sm border border-shining-knight/10 text-sm text-december-sky/90">
+          <div>
+            <h3 class="font-bold text-odradek mb-2">Advantage</h3>
+            <p>Roll <strong>two d20s</strong> instead of one, and use the <strong>higher</strong> result.</p>
+          </div>
+          <div>
+            <h3 class="font-bold text-red-400 mb-2">Disadvantage</h3>
+            <p>Roll <strong>two d20s</strong> instead of one, and use the <strong>lower</strong> result.</p>
+          </div>
+        </div>
+      </section>
+
+      {/* Ability Scores */}
+      <section class="bg-dark-engine/40 border border-shining-knight/20 p-8 relative overflow-hidden backdrop-blur-sm">
+        <div class="absolute top-0 left-0 w-1 h-full bg-odradek/80"></div>
+        <h2 class="font-orbitron text-2xl font-bold text-bleached-silk tracking-wide uppercase mb-4 border-b border-shining-knight/20 pb-2">3. Ability Scores</h2>
+        <p class="mb-4 text-sm">Every operative is defined by six core stats ranging from 1 to 20. The score determines the modifier used on your d20 rolls (Formula: [Score - 10] / 2, rounded down).</p>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          <div class="p-4 border border-shining-knight/20 bg-kurobeni/30">
+            <span class="text-odradek font-mono font-bold">STRENGTH (STR)</span>
+            <p class="text-xs mt-2">Physical power and carrying capacity. Used for melee attacks (like cargo cases) and Athletics checks (climbing, escaping BT grasp).</p>
+          </div>
+          <div class="p-4 border border-shining-knight/20 bg-kurobeni/30">
+            <span class="text-odradek font-mono font-bold">DEXTERITY (DEX)</span>
+            <p class="text-xs mt-2">Agility and reflexes. Used for firearms, Stealth, Acrobatics (keeping balance), and determining your Armor Class.</p>
+          </div>
+          <div class="p-4 border border-shining-knight/20 bg-kurobeni/30">
+            <span class="text-odradek font-mono font-bold">CONSTITUTION (CON)</span>
+            <p class="text-xs mt-2">Endurance and stamina. Dictates your Hit Points (HP) and resistance to Timefall decay exhaustion.</p>
+          </div>
+          <div class="p-4 border border-shining-knight/20 bg-kurobeni/30">
+            <span class="text-odradek font-mono font-bold">INTELLIGENCE (INT)</span>
+            <p class="text-xs mt-2">Memory and analytical skill. Used for repairing PCC structures, hacking MULE terminals, and understanding the Chiral Network.</p>
+          </div>
+          <div class="p-4 border border-shining-knight/20 bg-kurobeni/30">
+            <span class="text-odradek font-mono font-bold">WISDOM (WIS)</span>
+            <p class="text-xs mt-2">Intuition and perception. Used for spotting BTs, surviving in the wilderness, and Medicine checks (using Cryptobiotes).</p>
+          </div>
+          <div class="p-4 border border-shining-knight/20 bg-kurobeni/30">
+            <span class="text-odradek font-mono font-bold">CHARISMA (CHA)</span>
+            <p class="text-xs mt-2">Force of personality. Used for interacting with Preppers holograms, Persuasion, Intimidation, and resisting DOOMS nightmares.</p>
+          </div>
+        </div>
+      </section>
+
+      {/* Combat & Economy of Action */}
+      <section class="bg-dark-engine/40 border border-shining-knight/20 p-8 relative overflow-hidden backdrop-blur-sm">
+        <div class="absolute top-0 left-0 w-1 h-full bg-odradek/80"></div>
+        <h2 class="font-orbitron text-2xl font-bold text-bleached-silk tracking-wide uppercase mb-4 border-b border-shining-knight/20 pb-2">4. Combat & Economy of Action</h2>
+        <p class="mb-4">During a hostile encounter, time is tracked in 6-second rounds. On a character's turn, they have access to the following:</p>
+        
+        <ul class="space-y-4">
+          <li class="bg-kurobeni/50 p-4 border-l-2 border-shining-knight">
+            <strong class="text-bleached-silk">Action:</strong> The main thing you do. E.g., Attack with a lethal/non-lethal weapon, Cast a blueprint, Dash (double speed), Disengage (run without provoking attacks), Use an Object (spray repair spray), or Hide.
+          </li>
+          <li class="bg-kurobeni/50 p-4 border-l-2 border-shining-knight">
+            <strong class="text-bleached-silk">Bonus Action:</strong> A swift supplementary action. Only certain abilities (like a Rogue's Cunning Action) or off-hand weapons allow a Bonus Action.
+          </li>
+          <li class="bg-kurobeni/50 p-4 border-l-2 border-shining-knight">
+            <strong class="text-bleached-silk">Movement:</strong> Moving a distance up to your speed (usually 30 feet). Can be broken up between attacks.
+          </li>
+          <li class="bg-kurobeni/50 p-4 border-l-2 border-shining-knight">
+            <strong class="text-bleached-silk">Reaction:</strong> An instant response to a trigger, usually on someone else's turn. E.g., an Opportunity Attack when a MULE runs past you.
+          </li>
+        </ul>
+      </section>
+
+      {/* Encumbrance & Cargo */}
+      <section class="bg-dark-engine/40 border border-shining-knight/20 p-8 relative overflow-hidden backdrop-blur-sm">
+        <div class="absolute top-0 left-0 w-1 h-full bg-odradek/80"></div>
+        <h2 class="font-orbitron text-2xl font-bold text-bleached-silk tracking-wide uppercase mb-4 border-b border-shining-knight/20 pb-2">5. Cargo Encumbrance System</h2>
+        <p class="mb-4">In a post-Stranding world, weight management is survival. Standard D&D weight rules are replaced by the Cargo System:</p>
+        <ul class="list-disc pl-6 space-y-2 text-sm text-december-sky/90 bg-black/20 p-4 rounded-sm border border-shining-knight/10">
+          <li><strong>Carrying Capacity:</strong> STR Score x 15 pounds.</li>
+          <li><strong>Over-Encumbered:</strong> Carrying over STR Score x 5 pounds reduces speed by 10 ft.</li>
+          <li><strong>Heavily Encumbered:</strong> Carrying over STR Score x 10 pounds reduces speed by 20 ft and gives Disadvantage on all STR, DEX, and CON checks (including attacks).</li>
+          <li><strong>Balance Checks:</strong> If hit while Heavily Encumbered, you must pass a DEX Saving Throw or drop your cargo, incurring damage to the containers.</li>
+        </ul>
+      </section>
+
+      {/* Health, Rest, and Voidouts */}
+      <section class="bg-dark-engine/40 border border-shining-knight/20 p-8 relative overflow-hidden backdrop-blur-sm">
+        <div class="absolute top-0 left-0 w-1 h-full bg-odradek/80"></div>
+        <h2 class="font-orbitron text-2xl font-bold text-bleached-silk tracking-wide uppercase mb-4 border-b border-shining-knight/20 pb-2">6. Hit Points & Voidout Protocol</h2>
+        <div class="space-y-4">
+          <p class="text-sm"><strong>Hit Points (HP):</strong> Your physical stamina. Getting hit reduces HP. When you hit 0 HP, you do not die instantly; instead, you fall unconscious and enter the Seam.</p>
+          <p class="text-sm"><strong>Death Saving Throws:</strong> If you start your turn at 0 HP, roll 1d20. 10 or higher is a success, 9 or lower is a failure. 3 successes stabilize you. 3 failures mean death.</p>
+          <p class="text-sm text-red-400 font-bold"><strong>The Voidout Protocol (Necrosis):</strong> If a human dies and their body is not incinerated within 48 in-game hours, it undergoes necrosis, becomes a BT, and immediately triggers an anti-matter explosion (Voidout) upon contacting another human, leaving a crater and a Game Over for the operational region.</p>
+          
+          <div class="mt-4 pt-4 border-t border-shining-knight/20 grid grid-cols-2 gap-4 text-sm bg-black/20 p-4">
+            <div>
+              <strong class="text-odradek">Short Rest (1 Hour):</strong> Spend Hit Dice (dependent on your class level) to heal. Simulates sitting under a Timefall Shelter.
+            </div>
+            <div>
+              <strong class="text-odradek">Long Rest (8 Hours):</strong> Regain all HP and half your total Hit Dice. Simulates sleeping in a Safe House or distribution center Private Room.
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+  </main>
+</Layout>

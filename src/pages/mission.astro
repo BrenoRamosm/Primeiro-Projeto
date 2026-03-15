@@ -1,0 +1,46 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+import MissionCard from '../components/MissionCard';
+import { missions } from '../data/missions';
+---
+
+<Layout title="Archive: Mission Log | BRIDGES OS" description="Active and past delivery orders via the Chiral Network.">
+  <Header />
+
+  <main class="relative pt-24 pb-20 px-6 max-w-7xl mx-auto">
+    
+    <div class="mb-12 border-l-2 border-odradek pl-6 flex justify-between flex-wrap gap-4">
+      <div>
+        <h1 class="font-orbitron font-bold text-4xl md:text-6xl uppercase tracking-wider text-bleached-silk mb-2">
+          Mission <span class="text-shining-knight">Log</span>
+        </h1>
+        <p class="font-mono text-sm text-december-sky tracking-widest uppercase">
+          [ Accessing Delivery Orders database via Chiral Network ]
+        </p>
+      </div>
+
+      <div class="flex items-center gap-3 font-mono text-xs uppercase tracking-widest text-bleached-silk bg-kurobeni/50 border border-shining-knight/30 px-4 py-2">
+        <span class="w-2 h-2 rounded-full bg-odradek animate-pulse"></span>
+        Orders Synced: {missions.length}
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      {missions.map((m, index) => (
+        <MissionCard 
+          client:load
+          mission={m}
+          delay={index * 0.15}
+        />
+      ))}
+    </div>
+
+    <div class="mt-16 text-center">
+      <a href="/" class="inline-block px-8 py-3 bg-transparent text-shining-knight font-mono uppercase tracking-widest text-sm hover:text-bleached-silk hover:border-bleached-silk transition-all border border-shining-knight/30">
+        Return to Terminal
+      </a>
+    </div>
+
+  </main>
+</Layout>

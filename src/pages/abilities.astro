@@ -1,0 +1,33 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+import { classes } from '../data/classes';
+import AbilityShowcase from '../components/AbilityShowcase';
+---
+
+<Layout title="Archive: Abilities Showcase | BRIDGES RPG" description="Visual showcase of Class Abilities and 3D Avatar Evolution.">
+  <Header />
+
+  <main class="relative pt-24 pb-20 px-6 max-w-7xl mx-auto">
+    
+    <div class="mb-12 border-l-2 border-shining-knight pl-6">
+      <h1 class="font-orbitron font-bold text-4xl md:text-5xl uppercase tracking-wider text-bleached-silk mb-2">
+        Ability <span class="text-odradek">Showcase</span>
+      </h1>
+      <p class="font-mono text-sm text-december-sky tracking-widest uppercase">
+        [ Visual simulation of skill progression and gear evolution ]
+      </p>
+    </div>
+
+    <div class="space-y-24">
+      {classes.map((c, index) => (
+        <AbilityShowcase 
+          client:only="react"
+          classData={c}
+          index={index}
+        />
+      ))}
+    </div>
+
+  </main>
+</Layout>

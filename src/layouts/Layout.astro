@@ -1,0 +1,33 @@
+---
+// Layout.astro
+import '@fontsource/orbitron/400.css';
+import '@fontsource/orbitron/700.css';
+import '@fontsource/inter/400.css';
+import '@fontsource/inter/600.css';
+import '@fontsource/share-tech-mono/400.css';
+import '../styles/global.css';
+
+import TopographyBackground from '../components/TopographyBackground.astro';
+
+interface Props {
+	title: string;
+	description?: string;
+}
+
+const { title, description = "A Death Stranding inspired RPG Portfolio" } = Astro.props;
+---
+
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta name="viewport" content="width=device-width" />
+		<meta name="generator" content={Astro.generator} />
+		<title>{title} | BRIDGES</title>
+		<meta name="description" content={description} />
+	</head>
+	<body class="bg-kurobeni text-bleached-silk font-inter antialiased min-h-screen selection:bg-odradek selection:text-kurobeni">
+		<TopographyBackground />
+		<slot />
+	</body>
+</html>

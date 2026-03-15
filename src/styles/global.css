@@ -1,0 +1,48 @@
+@import "tailwindcss";
+
+@theme {
+  --color-kurobeni: #261B1D;
+  --color-dark-engine: #3D3E40;
+  --color-bleached-silk: #F2F2F2;
+  --color-december-sky: #D7D7D9;
+  --color-shining-knight: #979DA6;
+  --color-odradek: #dc8d18;
+  --color-bridges-blue: #4B7BAA;
+
+  --font-orbitron: "Orbitron", sans-serif;
+  --font-inter: "Inter", sans-serif;
+  --font-mono: "Share Tech Mono", monospace;
+
+  /* Custom animations for framer-motion/tailwind if needed */
+}
+
+@layer base {
+  body {
+    background-color: var(--color-kurobeni);
+    color: var(--color-bleached-silk);
+    font-family: var(--font-inter);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+  }
+
+  /* Scanline effect utility */
+  .bg-scanlines {
+    background: linear-gradient(
+        to bottom,
+        rgba(255, 255, 255, 0),
+        rgba(255, 255, 255, 0) 50%,
+        rgba(0, 0, 0, 0.1) 50%,
+        rgba(0, 0, 0, 0.1)
+      );
+    background-size: 100% 4px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 50;
+    opacity: 0.4;
+  }
+}
