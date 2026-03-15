@@ -28,5 +28,3 @@
 - **Storage:** Store all arrays and interfaces in `src/data/*.ts`.
 - **Typing:** Enforce strict TypeScript interfaces for all game entities to maintain reliability during rendering.
 
-## 4. Continuous Integration
-- **Auto-Commit & Deploy:** Whenever the project is updated (features added, bugs fixed, logic changed), ALWAYS automatically commit the changes with a descriptive message, push to the remote repository, and trigger a deployment if applicable. This ensures the project is always up-to-date.
